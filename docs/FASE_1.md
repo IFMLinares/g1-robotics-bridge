@@ -33,6 +33,20 @@ Utilizado para verificar que el puente también permite enviar comandos al robot
 
 ---
 
+## ⚠️ Bloqueos y Soluciones (Reporte de Avance)
+
+Siguiendo los requerimientos del reto técnico, se documenta el principal bloqueo encontrado durante el Día 1:
+
+### Bloqueo: Error `Service /rosapi/topics does not exist`
+Al intentar listar los tópicos desde la laptop cliente usando `list_topics.py`, se obtuvo un error indicando que el servicio de la API de ROS no estaba disponible.
+
+*   **Causa**: El nodo `rosbridge_server` se inició sin el componente `rosapi`, el cual es responsable de exponer servicios como el listado de tópicos y nodos a través del WebSocket.
+*   **Solución Aplicada**: 
+    1.  Verificar que Rosbridge se lance usando el archivo de configuración completo: `ros2 launch rosbridge_server rosbridge_websocket_launch.xml`.
+    2.  Como alternativa de depuración rápida, utilizar `ros2 topic list` directamente en la terminal del host para confirmar la disponibilidad de los tópicos antes de intentar consumirlos vía script.
+
+---
+
 ## 🛠️ Verificación y Hitos
 1.  **Conexión Exitosa**: Al ejecutar `python3 odom_subscriber.py`, el terminal muestra `¡Conectado!`.
 2.  **Lectura en Tiempo Real**: Visualización de las coordenadas X e Y cambiando en la terminal mientras el robot se mueve en Isaac Sim.
