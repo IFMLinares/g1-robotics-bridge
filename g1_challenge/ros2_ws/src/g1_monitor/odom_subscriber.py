@@ -5,7 +5,14 @@ import sys
 import roslibpy
 
 # Añadir el path para importar DatabaseManager
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../')))
+# Buscamos la carpeta 'g1_challenge' subiendo desde el script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# El script está en g1_challenge/ros2_ws/src/g1_monitor/odom_subscriber.py
+# g1_challenge es 3 niveles arriba
+g1_challenge_root = os.path.abspath(os.path.join(script_dir, '../../../'))
+if g1_challenge_root not in sys.path:
+    sys.path.append(g1_challenge_root)
+
 from database.database_manager import DatabaseManager
 
 def quaternion_to_yaw(q):
@@ -20,7 +27,10 @@ def main():
     # CONFIGURACIÓN
     HOST = '192.168.3.122' # IP de PC Isaac Sim
     PORT = 9090
-    DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../database/g1_telemetry.db'))
+    # El script está en g1_challenge/ros2_ws/src/g1_monitor/odom_subscriber.py
+    # La DB está en g1_challenge/database/g1_telemetry.db
+    g1_challenge_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../'))
+    DB_PATH = os.path.join(g1_challenge_root, 'database/g1_telemetry.db')
 
     print(f"Conectando a Rosbridge en {HOST}:{PORT}...")
     client = roslibpy.Ros(host=HOST, port=PORT)
