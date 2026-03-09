@@ -60,6 +60,7 @@
                 </div>
                 <div class="instructions">
                     <p>Mover: <strong>WASD</strong> | Diagonales soportadas</p>
+                    <div id="debug-twist" style="color: var(--accent-color); font-family: monospace; margin: 10px 0; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 5px; font-size: 0.8rem;">Twist -> X: 0 | Y: 0 | Z: 0</div>
                     <p>Pasos laterales (Strafing): <strong>Q / E</strong></p>
                     <p>Parar: <strong>Espacio</strong></p>
                 </div>
@@ -81,26 +82,34 @@
 
         async function updateMovement() {
             let x = 0, y = 0, z = 0;
-            const speed = 0.6;
-            const turnSpeed = 1.2;
+            const speed = 0.8;      // Antes 0.6
+            const turnSpeed = 2.5;  // Antes 1.2 - Incrementado para mayor visibilidad
 
             if (keys.w) x += speed;
             if (keys.s) x -= speed;
-            if (keys.a) z += turnSpeed; // Giro
-            if (keys.d) z -= turnSpeed; // Giro
+            if (keys.a) z += turnSpeed; // Giro Izq
+            if (keys.d) z -= turnSpeed; // Giro Der
             if (keys.q) y += speed;     // Paso lateral Izq
             if (keys.e) y -= speed;     // Paso lateral Der
 
-            // Solo enviar si hay cambios significativos para no saturar
-            if (x !== lastSent.x || y !== lastSent.y || z !== lastSent.z) {
+            // Enviar si hay cambios o si se mantiene presionado (para asegurar persistencia en ROS)
+            if (x !== lastSent.x || y !== lastSent.y || z !== lastSent.z || (x !== 0 || y !== 0 || z !== 0)) {
                 try {
                     await fetch(`/api/move?linear_x=${x}&linear_y=${y}&angular_z=${z}`, {
                         method: 'POST'
                     });
                     lastSent = { x, y, z };
+                    updateDebug(x, y, z);
                 } catch (error) {
                     console.error('Error enviando movimiento:', error);
                 }
+            }
+        }
+
+        function updateDebug(x, y, z) {
+            const debugEl = document.getElementById('debug-twist');
+            if (debugEl) {
+                debugEl.innerText = `Twist -> X: ${x.toFixed(1)} | Y: ${y.toFixed(1)} | Z (Ang): ${z.toFixed(1)}`;
             }
         }
 
@@ -141,12 +150,12 @@
         document.addEventListener('keyup', (e) => {
             const key = e.key.toLowerCase();
             if (keys.hasOwnProperty(key)) keys[key] = false;
-            if (key === ' ') { // Parada de emergencia
+            if (key === ' ') {
                 Object.keys(keys).forEach(k => keys[k] = false);
             }
         });
 
-        // Eventos de botones (D-PAD) - Siguen funcionando como impulsos simples
+        // Eventos de botones (D-PAD)
         document.querySelectorAll('.btn-step').forEach(btn => {
             btn.addEventListener('mousedown', () => {
                 const dir = btn.dataset.dir;
@@ -166,8 +175,8 @@
         });
 
         // Loops
-        setInterval(updateMovement, 100); // 10Hz para fluidez
-        setInterval(updateTelemetry, 1000); // 1Hz para no saturar DB
+        setInterval(updateMovement, 100); 
+        setInterval(updateTelemetry, 1000);
     </script>
 </body>
 </html>

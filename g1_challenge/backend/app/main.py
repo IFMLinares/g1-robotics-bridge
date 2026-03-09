@@ -26,7 +26,7 @@ db = DatabaseManager(DB_PATH)
 class G1Bridge:
     def __init__(self, host='192.168.3.122', port=9090):
         self.client = roslibpy.Ros(host=host, port=port)
-        self.cmd_vel_topic = roslibpy.Topic(self.client, '/cmd_vel', 'geometry_msgs/Twist')
+        self.cmd_vel_topic = roslibpy.Topic(self.client, '/cmd_vel', 'geometry_msgs/msg/Twist')
         self.status = "Disconnected"
 
     def connect(self):
