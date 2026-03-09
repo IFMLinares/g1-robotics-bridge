@@ -1,4 +1,4 @@
-# 🤖 Integración G1 Humanoid (NVIDIA Isaac Sim)
+# 🤖 Integración G1 EDU (NVIDIA Isaac Sim)
 
 Este repositorio contiene la implementación del puente de comunicación interactivo (ROS 2 Bridge) para monitorear y controlar el robot humanoide **G1** simulado dentro del entorno **NVIDIA Isaac Sim**. 
 
@@ -15,9 +15,11 @@ graph LR
     subgraph PC 1: Simulación
         A[NVIDIA Isaac Sim] <-->|ROS 2 Topic: /odom, /cmd_vel| B(rosbridge_suite)
     end
+    
+    B <-->|WebSocket puerto 9090| C
+
     subgraph PC 2: Estación de Control
-        C[Cliente Python roslibpy] <-->|WebSocket puero 9090| B
-        C -->|Persistencia| D[(SQLite g1_telemetry.db)]
+        C[Cliente Python roslibpy] -->|Persistencia| D[(SQLite g1_telemetry.db)]
     end
 ```
 
