@@ -118,23 +118,37 @@
         });
 
         function handleImage(message) {
-            console.log("Recibiendo imagen de:", imageTopic.name);
-            let imageData = "";
-            // Si es Raw Image de ROS 2, viene como un array de bytes
-            // Intentamos convertir a Base64 si no viene ya codificado
+            const placeholder = document.getElementById('camera-placeholder');
+            const img = document.getElementById('camera-stream');
+            
+            console.log("📸 Mensaje de imagen recibido!");
+            console.log("Codificación:", message.encoding);
+            console.log("Dimensiones:", message.width, "x", message.height);
+
             if (message.data) {
-                // Nota: Mostrar imágenes raw directamente en <img> requiere que 
-                // Isaac Sim las publique como sensor_msgs/CompressedImage 
-                // o usar un canvas. Por ahora probamos si el bridge las manda legibles.
-                imageData = "data:image/jpeg;base64," + message.data;
-                const img = document.getElementById('camera-stream');
-                img.src = imageData;
-                img.style.display = 'block';
-                document.getElementById('camera-placeholder').style.display = 'none';
+                // Si es sensor_msgs/Image (RAW), no se puede meter directo en img.src
+                // A menos que Isaac Sim lo esté mandando ya codificado (raro en RAW)
+                // Intentamos una conversión básica o avisamos al usuario
+                placeholder.querySelector('.placeholder-text').innerText = `Recibiendo RAW (${message.encoding})`;
+                
+                if (message.encoding === "rgb8" || message.encoding === "bgr8") {
+                    // Aquí iría lógica de Canvas para Renderizar RAW
+                    // Por simplicidad, avisamos que necesitamos COMPRESSED
+                    placeholder.style.display = 'flex';
+                } else {
+                    // Intento de fallback (Base64 directo)
+                    const imageData = "data:image/jpeg;base64," + message.data;
+                    img.src = imageData;
+                    img.style.display = 'block';
+                    placeholder.style.display = 'none';
+                }
+            } else {
+                console.warn("Mensaje sin datos de imagen");
             }
         }
 
         imageTopic.subscribe(handleImage);
+        console.log("Suscrito a:", imageTopic.name);
 
         // Estado del teclado (WASD)
         const keys = {
