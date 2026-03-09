@@ -82,17 +82,21 @@
 
         async function updateMovement() {
             let x = 0, y = 0, z = 0;
-            const speed = 0.8;      // Antes 0.6
-            const turnSpeed = 2.5;  // Antes 1.2 - Incrementado para mayor visibilidad
+            const speed = 0.8;
 
             if (keys.w) x += speed;
             if (keys.s) x -= speed;
-            if (keys.a) z += turnSpeed; // Giro Izq
-            if (keys.d) z -= turnSpeed; // Giro Der
-            if (keys.q) y += speed;     // Paso lateral Izq
-            if (keys.e) y -= speed;     // Paso lateral Der
+            
+            // Siguiendo instrucciones: A/D ahora para PASOS LATERALES (linear.y)
+            // Angular se queda en 0.
+            if (keys.a) y += speed; // Paso lateral Izal
+            if (keys.d) y -= speed; // Paso lateral Der
 
-            // Enviar si hay cambios o si se mantiene presionado (para asegurar persistencia en ROS)
+            // Teclas Q/E por si acaso, pero mapeadas a lo mismo o desactivadas
+            if (keys.q) y += speed;
+            if (keys.e) y -= speed;
+
+            // Enviar si hay cambios o si se mantiene presionado
             if (x !== lastSent.x || y !== lastSent.y || z !== lastSent.z || (x !== 0 || y !== 0 || z !== 0)) {
                 try {
                     await fetch(`/api/move?linear_x=${x}&linear_y=${y}&angular_z=${z}`, {
