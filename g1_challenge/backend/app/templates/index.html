@@ -1,17 +1,21 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>G1 Control Center | Premium Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap"
+        rel="stylesheet">
     <!-- ROSlibJS para Streaming Directo -->
     <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
 </head>
+
 <body>
     <div class="background-animation"></div>
-    
+
     <header>
         <div class="logo">G1 <span>Humanoid</span></div>
         <div class="status-indicator">
@@ -23,7 +27,13 @@
     <main class="dashboard">
         <!-- Panel de Telemetría -->
         <section class="telemetry-panel card">
-            <h2><i class="icon-telemetry"></i> Telemetría Real-Time</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h2 style="margin: 0;"><i class="icon-telemetry"></i> Telemetría Real-Time</h2>
+                <button id="btn-toggle-telemetry" class="btn-step"
+                    style="font-size: 0.9rem; padding: 5px 15px; width: auto; background: var(--accent-color);">
+                    Pausar Telemetría
+                </button>
+            </div>
             <div class="metrics-grid">
                 <div class="metric">
                     <label>Posición X</label>
@@ -43,6 +53,13 @@
                 </div>
             </div>
             <div class="camera-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="margin: 0;">Feed de Cámara</h3>
+                    <button id="btn-toggle-camera" class="btn-step"
+                        style="font-size: 0.9rem; padding: 5px 15px; width: auto; background: var(--secondary-color);">
+                        Conectar Cámara
+                    </button>
+                </div>
                 <img id="camera-stream" src="" alt="Esperando Stream..." onerror="this.style.display='none'">
                 <div id="camera-placeholder" class="camera-placeholder">
                     <div class="placeholder-text">Conectando a RealSense...</div>
@@ -65,7 +82,9 @@
                 </div>
                 <div class="instructions">
                     <p>Mover: <strong>WASD</strong> | Diagonales soportadas</p>
-                    <div id="debug-twist" style="color: var(--accent-color); font-family: monospace; margin: 10px 0; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 5px; font-size: 0.8rem;">Twist -> X: 0 | Y: 0 | Z: 0</div>
+                    <div id="debug-twist"
+                        style="color: var(--accent-color); font-family: monospace; margin: 10px 0; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 5px; font-size: 0.8rem;">
+                        Twist -> X: 0 | Y: 0 | Z: 0</div>
                     <p>Pasos laterales (Strafing): <strong>Q / E</strong></p>
                     <p>Parar: <strong>Espacio</strong></p>
                 </div>
@@ -83,72 +102,140 @@
             url: 'ws://192.168.3.122:9090'
         });
 
-        ros.on('connection', function() {
+        ros.on('connection', function () {
             console.log('✔ Conexión establecida con ROS Bridge');
             document.getElementById('ros-status').style.backgroundColor = "#00ff88";
             document.getElementById('ros-status').style.boxShadow = "0 0 10px #00ff88";
             document.getElementById('status-text').innerText = "Isaac Sim: Online";
         });
 
-        ros.on('error', function(error) {
+        ros.on('error', function (error) {
             console.log('✖ Error de conexión:', error);
             document.getElementById('status-text').innerText = "Isaac Sim: Error de conexión";
         });
 
-        ros.on('close', function() {
+        ros.on('close', function () {
             console.log('✖ Conexión cerrada');
             document.getElementById('ros-status').style.backgroundColor = "#ff3333";
             document.getElementById('status-text').innerText = "Isaac Sim: Offline";
             document.getElementById('camera-placeholder').style.display = 'flex';
         });
 
-        // Intentar con el tópico disponible en tu lista
-        // Nota: He visto '/back_camera/depth/image_rect_raw' en tu listado.
+        // Tópico de la cámara RGB Head
         const imageTopic = new ROSLIB.Topic({
             ros: ros,
-            name: '/back_camera/depth/image_rect_raw',
+            name: '/g1_robot/camera_head/rgb/image_raw',
             messageType: 'sensor_msgs/msg/Image'
-        });
-
-        // Intentar también con puntos si prefieres (pero Image es mejor para <img>)
-        const headCameraTopic = new ROSLIB.Topic({
-            ros: ros,
-            name: '/g1_robot/camera_head/depth/color/points', // Muestra que hay color aquí
-            messageType: 'sensor_msgs/msg/PointCloud2'
         });
 
         function handleImage(message) {
             const placeholder = document.getElementById('camera-placeholder');
             const img = document.getElementById('camera-stream');
-            
-            console.log("📸 Mensaje de imagen recibido!");
-            console.log("Codificación:", message.encoding);
-            console.log("Dimensiones:", message.width, "x", message.height);
+            let canvas = document.getElementById('camera-canvas');
 
             if (message.data) {
-                // Si es sensor_msgs/Image (RAW), no se puede meter directo en img.src
-                // A menos que Isaac Sim lo esté mandando ya codificado (raro en RAW)
-                // Intentamos una conversión básica o avisamos al usuario
-                placeholder.querySelector('.placeholder-text').innerText = `Recibiendo RAW (${message.encoding})`;
-                
-                if (message.encoding === "rgb8" || message.encoding === "bgr8") {
-                    // Aquí iría lógica de Canvas para Renderizar RAW
-                    // Por simplicidad, avisamos que necesitamos COMPRESSED
-                    placeholder.style.display = 'flex';
-                } else {
-                    // Intento de fallback (Base64 directo)
-                    const imageData = "data:image/jpeg;base64," + message.data;
-                    img.src = imageData;
-                    img.style.display = 'block';
+                if (message.encoding === "rgb8" || message.encoding === "bgr8" || message.encoding === "rgba8" || message.encoding === "bgra8") {
+
+                    if (!canvas) {
+                        canvas = document.createElement('canvas');
+                        canvas.id = 'camera-canvas';
+                        canvas.style.width = '100%';
+                        canvas.style.borderRadius = 'var(--radius)';
+                        img.parentNode.insertBefore(canvas, img.nextSibling);
+                    }
+                    if (canvas.width !== message.width) {
+                        canvas.width = message.width;
+                        canvas.height = message.height;
+                    }
+
+                    img.style.display = 'none';
+                    canvas.style.display = 'block';
                     placeholder.style.display = 'none';
+
+                    const ctx = canvas.getContext('2d');
+                    const imgData = ctx.createImageData(message.width, message.height);
+
+                    // Decode base64 
+                    const rawString = atob(message.data);
+
+                    if (message.encoding === "rgb8") {
+                        for (let i = 0, j = 0; i < rawString.length; i += 3, j += 4) {
+                            imgData.data[j] = rawString.charCodeAt(i);
+                            imgData.data[j + 1] = rawString.charCodeAt(i + 1);
+                            imgData.data[j + 2] = rawString.charCodeAt(i + 2);
+                            imgData.data[j + 3] = 255;
+                        }
+                    } else if (message.encoding === "bgr8") {
+                        for (let i = 0, j = 0; i < rawString.length; i += 3, j += 4) {
+                            imgData.data[j] = rawString.charCodeAt(i + 2);
+                            imgData.data[j + 1] = rawString.charCodeAt(i + 1);
+                            imgData.data[j + 2] = rawString.charCodeAt(i);
+                            imgData.data[j + 3] = 255;
+                        }
+                    } else if (message.encoding === "rgba8") {
+                        for (let i = 0, j = 0; i < rawString.length; i += 4, j += 4) {
+                            imgData.data[j] = rawString.charCodeAt(i);
+                            imgData.data[j + 1] = rawString.charCodeAt(i + 1);
+                            imgData.data[j + 2] = rawString.charCodeAt(i + 2);
+                            imgData.data[j + 3] = rawString.charCodeAt(i + 3);
+                        }
+                    } else if (message.encoding === "bgra8") {
+                        for (let i = 0, j = 0; i < rawString.length; i += 4, j += 4) {
+                            imgData.data[j] = rawString.charCodeAt(i + 2);
+                            imgData.data[j + 1] = rawString.charCodeAt(i + 1);
+                            imgData.data[j + 2] = rawString.charCodeAt(i);
+                            imgData.data[j + 3] = rawString.charCodeAt(i + 3);
+                        }
+                    }
+                    ctx.putImageData(imgData, 0, 0);
+
+                } else {
+                    // Si llega versión base64 jpeg compacta u otro formato exótico, imprimimos error visual en placeholder
+                    img.style.display = 'none';
+                    if (canvas) canvas.style.display = 'none';
+                    placeholder.style.display = 'flex';
+                    placeholder.querySelector('.placeholder-text').innerText = `Formato no soportado: ${message.encoding}`;
                 }
             } else {
                 console.warn("Mensaje sin datos de imagen");
             }
         }
 
-        imageTopic.subscribe(handleImage);
-        console.log("Suscrito a:", imageTopic.name);
+        let cameraActive = false;
+        const btnToggleCamera = document.getElementById('btn-toggle-camera');
+
+        btnToggleCamera.addEventListener('click', () => {
+            if (cameraActive) {
+                // Desconectar (Desuscribirse)
+                imageTopic.unsubscribe();
+                cameraActive = false;
+                btnToggleCamera.innerText = "Conectar Cámara";
+                btnToggleCamera.style.background = "var(--secondary-color)";
+
+                // Resetear vista
+                const img = document.getElementById('camera-stream');
+                let canvas = document.getElementById('camera-canvas');
+                const placeholder = document.getElementById('camera-placeholder');
+
+                img.style.display = 'none';
+                if (canvas) canvas.style.display = 'none';
+                placeholder.style.display = 'flex';
+                placeholder.querySelector('.placeholder-text').innerText = "Cámara Pausada (Click para Conectar)";
+
+                console.log("Desuscrito de:", imageTopic.name);
+            } else {
+                // Conectar (Suscribirse)
+                const placeholder = document.getElementById('camera-placeholder');
+                placeholder.querySelector('.placeholder-text').innerText = "Conectando a RealSense...";
+
+                imageTopic.subscribe(handleImage);
+                cameraActive = true;
+                btnToggleCamera.innerText = "Desconectar Cámara";
+                btnToggleCamera.style.background = "var(--accent-color)";
+
+                console.log("Suscrito a:", imageTopic.name);
+            }
+        });
 
         // Estado del teclado (WASD)
         const keys = {
@@ -163,7 +250,7 @@
 
             if (keys.w) x += speed;
             if (keys.s) x -= speed;
-            
+
             // Siguiendo instrucciones: A/D ahora para PASOS LATERALES (linear.y)
             // Angular se queda en 0.
             if (keys.a) y += speed; // Paso lateral Izal
@@ -198,7 +285,7 @@
             try {
                 const response = await fetch('/api/telemetry');
                 const data = await response.json();
-                
+
                 const statusDot = document.getElementById('ros-status');
                 const statusText = document.getElementById('status-text');
 
@@ -240,24 +327,62 @@
         document.querySelectorAll('.btn-step').forEach(btn => {
             btn.addEventListener('mousedown', () => {
                 const dir = btn.dataset.dir;
-                if(dir === "forward") keys.w = true;
-                if(dir === "backward") keys.s = true;
-                if(dir === "left") keys.a = true;
-                if(dir === "right") keys.d = true;
-                if(dir === "stop") Object.keys(keys).forEach(k => keys[k] = false);
+                if (dir === "forward") keys.w = true;
+                if (dir === "backward") keys.s = true;
+                if (dir === "left") keys.a = true;
+                if (dir === "right") keys.d = true;
+                if (dir === "stop") Object.keys(keys).forEach(k => keys[k] = false);
             });
             btn.addEventListener('mouseup', () => {
                 const dir = btn.dataset.dir;
-                if(dir === "forward") keys.w = false;
-                if(dir === "backward") keys.s = false;
-                if(dir === "left") keys.a = false;
-                if(dir === "right") keys.d = false;
+                if (dir === "forward") keys.w = false;
+                if (dir === "backward") keys.s = false;
+                if (dir === "left") keys.a = false;
+                if (dir === "right") keys.d = false;
             });
         });
 
-        // Loops
-        setInterval(updateMovement, 100); 
-        setInterval(updateTelemetry, 1000);
+        // Control de Telemetría
+        let telemetryInterval = null;
+        let telemetryActive = true;
+        const btnToggleTelemetry = document.getElementById('btn-toggle-telemetry');
+
+        function startTelemetry() {
+            if (!telemetryInterval) {
+                telemetryInterval = setInterval(updateTelemetry, 1000);
+            }
+        }
+
+        function stopTelemetry() {
+            if (telemetryInterval) {
+                clearInterval(telemetryInterval);
+                telemetryInterval = null;
+            }
+        }
+
+        btnToggleTelemetry.addEventListener('click', () => {
+            telemetryActive = !telemetryActive;
+            if (telemetryActive) {
+                startTelemetry();
+                btnToggleTelemetry.innerText = "Pausar Telemetría";
+                btnToggleTelemetry.style.background = "var(--accent-color)";
+                // Update dots to show active again
+                document.getElementById('ros-status').style.backgroundColor = "#00ff88";
+                document.getElementById('status-text').innerText = "Isaac Sim: Online";
+            } else {
+                stopTelemetry();
+                btnToggleTelemetry.innerText = "Reanudar Telemetría";
+                btnToggleTelemetry.style.background = "var(--secondary-color)";
+                // Update dots to show paused
+                document.getElementById('ros-status').style.backgroundColor = "gray";
+                document.getElementById('status-text').innerText = "Isaac Sim: Telemetría Pausada";
+            }
+        });
+
+        // Loops iniciales
+        setInterval(updateMovement, 100);
+        startTelemetry(); // Iniciar telemetría por defecto
     </script>
 </body>
+
 </html>

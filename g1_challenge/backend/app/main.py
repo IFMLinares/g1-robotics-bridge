@@ -56,8 +56,11 @@ bridge = G1Bridge()
 
 @app.on_event("startup")
 async def startup_event():
-    bridge.connect()
-    print("G1Bridge iniciado y conectado.")
+    try:
+        bridge.connect()
+        print("G1Bridge iniciado y conectado.")
+    except Exception as e:
+        print(f"Error iniciando G1Bridge: {e}. El dashboard funcionará sin conexión backend-to-ROS.")
 
 @app.on_event("shutdown")
 async def shutdown_event():
