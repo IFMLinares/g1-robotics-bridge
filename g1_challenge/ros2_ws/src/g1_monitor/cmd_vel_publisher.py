@@ -28,10 +28,10 @@ def main():
             # Linear X: Velocidad frontal (m/s)
             # Angular Z: Velocidad de giro (rad/s)
             
-            print("Enviando comando: Avance frontal (1.0 m/s)")
+            print("Enviando comando: Avance frontal (0.0 m/s)")
             
             message = roslibpy.Message({
-                'linear': {'x': 1.0, 'y': 0.0, 'z': 0.0},
+                'linear': {'x': 0.0, 'y': 0.0, 'z': 0.0},
                 'angular': {'x': 0.0, 'y': 0.0, 'z': 0.0}
             })
             
