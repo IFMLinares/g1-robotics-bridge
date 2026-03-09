@@ -11,15 +11,14 @@ El proyecto establece una comunicación fluida entre el motor de físicas de la 
 El sistema emula un escenario del mundo real donde el simulador (Isaac Sim) actúa como el hardware físico del robot, y una PC o laptop remota funciona como la "Estación de Control Terrestre" (GCS).
 
 ```mermaid
-graph LR
+graph TD
     subgraph PC 1: Simulación
         A[NVIDIA Isaac Sim] <-->|ROS 2 Topic: /odom, /cmd_vel| B(rosbridge_suite)
     end
     
-    B <-->|WebSocket puerto 9090| C
-
     subgraph PC 2: Estación de Control
-        C[Cliente Python roslibpy] -->|Persistencia| D[(SQLite g1_telemetry.db)]
+        C[Cliente Python roslibpy] <-->|WebSocket puerto 9090| B
+        C -->|Persistencia| D[(SQLite g1_telemetry.db)]
     end
 ```
 
