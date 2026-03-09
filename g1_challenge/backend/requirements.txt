@@ -1,0 +1,4 @@
+fastapi
+uvicorn
+roslibpy
+sqlite3-api  # Python built-in, but just for clarity if using specific wrappers
