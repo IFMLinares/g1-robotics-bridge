@@ -1,54 +1,42 @@
-# Fase 1: Inmersión en ROS 2 (Suscripción y Mapeo)
+# Fase 1: Inmersión en ROS 2 (Scripts de Python)
 
 ## Objetivo Principal
-Establecer la comunicación bidireccional básica con el robot G1 en Isaac Sim a través de **ROS 2**. Esto implica obtener datos de posicionamiento en tiempo real (Odometría) y asegurar capacidades para enviar comandos de movimiento, actuando como la base para el dashboard web posterior.
+Entender la estructura de comunicación de ROS 2 y desarrollar los primeros scripts en Python para interactuar con el robot G1 EDU. El enfoque de este día fue la **suscripción de datos** y la **validación de conectividad**.
 
-## Análisis de la Arquitectura de Comunicación
-Debido a que el Isaac Sim se ejecuta en una máquina distinta a la PC de desarrollo web, se optó por dos estrategias de integración, priorizando la ligereza del cliente final:
+## Arquitectura de los Scripts
+Para el desarrollo se utilizó **`roslibpy`**, una librería que permite comunicarse con ROS 2 vía WebSockets (Rosbridge). Esto permite que los scripts de Python corran en cualquier entorno (Windows, macOS, Linux) sin necesidad de una instalación completa de ROS 2 Humble.
 
-1. **Vía WebSocket (`roslibpy`) [Elegida para Laptops]**: Se ejecuta el paquete `rosbridge_suite` en la máquina anfitriona (servidor Isaac Sim). El desarrollo del cliente (la PC que monitorea) se hace consumiendo un socket en el puerto `9090`. Esto libra a la laptop de requerir Ubuntu local o una instalación full de `ros-humble-desktop`, facilitando que cualquier SO interactúe.
-2. **Vía ROS 2 Nativo (`rclpy`) [Para el Entorno Producción Docker]**: Usando el mismo `ROS_DOMAIN_ID` en ambas máquinas (o contenedores) de la red local, para tener rendimiento en crudo (utilizando el middleware DDS nativo como `rmw_cyclonedds_cpp` si hay problemas de enrutamiento UDP).
+---
 
-## Implementación Técnica y Tópicos
+## 🐍 Detalle de Programación (Scripts del Día 1)
 
-La inmersión se centró en dos tópicos cruciales estandarizados por ROS para robótica móvil y humanoide básica:
+### 1. `odom_subscriber.py` (El Suscriptor Core)
+Este es el nodo principal encargado de recibir la telemetría del robot.
 
-### 1. Lectura de Posición: Tópico `/odom` 
-Este tópico nos indica dónde cree el robot que está basándose en sus sensores (cinemática o IMU del simulador).
-- **Tipo de Mensaje**: `nav_msgs/msg/Odometry`
-- **Script**: `odom_subscriber.py`
-- **Procesamiento de Datos (Mapeo)**:
-  - El mensaje anida mucha información. Extraemos las coordenadas cartesianas desde `pose.pose.position.x` y `pose.pose.position.y` para dibujar el mapa 2D futuro.
-  - La rotación llega en un Cuaternión (`pose.pose.orientation`), requiriendo matemáticas (decuaternización) si se desea usar un simple Yaw (ángulo de vista) en el dashboard web.
+*   **Conversión de Coordenadas**: El robot entrega su orientación en Cuaterniones. Se implementó la función `quaternion_to_yaw` para convertir estos datos en un ángulo de rotación (Yaw) comprensible para humanos.
+    ```python
+    def quaternion_to_yaw(q):
+        # Convierte x, y, z, w a ángulo Yaw usando atan2
+        ...
+    ```
+*   **Gestión de Tópicos**: Se suscribe al tópico `/odom` con el tipo de mensaje `nav_msgs/Odometry`.
+*   **Flujo de Datos**:
+    1. Se conecta al `host` (IP del servidor Isaac Sim) y puerto `9090`.
+    2. Define un `callback` que extrae la posición (X, Y) y la orientación.
+    3. Imprime los datos formateados en la terminal para monitoreo en vivo.
 
-### 2. Control G1: Tópico `/cmd_vel`
-Este tópico espera comandos de velocidad (Velocity Commands).
-- **Tipo de Mensaje**: `geometry_msgs/msg/Twist`
-- **Script (Prueba)**: `cmd_vel_publisher.py`
-- **Estructura de Envío**:
-  - `linear.x`: Controla el avance o retroceso (Ej. 1.0 m/s hacia adelante).
-  - `angular.z`: Controla el giro sobre su propio eje vertical (Yaw) (Ej. 0.5 rad/s rotando a la izquierda).
+### 2. `cmd_vel_publisher.py` (Validación de Movimiento)
+Utilizado para verificar que el puente también permite enviar comandos al robot.
+*   **Tópico**: `/cmd_vel`
+*   **Tipo de Mensaje**: `geometry_msgs/Twist`
+*   **Lógica**: Crea mensajes con velocidad lineal (`linear.x`) y angular (`angular.z`) para comandar el movimiento del humanoide G1.
 
-## Verificación de Integración (Troubleshooting)
+---
 
-Para confirmar el éxito de esta fase de inmersión sin necesidad de tener scripts corriendo, se deben hacer los siguientes pasos:
-
-1. **Chequeo de Ecosistema**:
-   En la PC Anfitriona, con la simulación G1 activa:
-   ```bash
-   ros2 topic list
-   ```
-   Debe mostrar explícitamente `/odom` y `/cmd_vel` en la lista. Si no aparecen, los Action Graphs de Omniverse/Isaac Sim no están exportando los "puertos ROS 2" hacia afuera.
-
-2. **Dumping de Telemetría (El Entregable)**:
-   Si el cliente corre Ubuntu/ROS nativo:
-   ```bash
-   ros2 topic echo /odom
-   ```
-   *Debe imprimir en terminal sin parar bloques YAML que incluyan `Pose: x=... y=...`*
-
-3. **Prueba en Cliente Ligero**:
-   Corriendo el script `odom_subscriber.py` modificado con la IP del servidor, la terminal deberá escupir de forma parseada los números (`[INFO]: x: 1.25, y: -0.4, yaw: 11]`).
+## 🛠️ Verificación y Hitos
+1.  **Conexión Exitosa**: Al ejecutar `python3 odom_subscriber.py`, el terminal muestra `¡Conectado!`.
+2.  **Lectura en Tiempo Real**: Visualización de las coordenadas X e Y cambiando en la terminal mientras el robot se mueve en Isaac Sim.
+3.  **Hito Logrado**: Código fuente inicial cargado con una estructura que separa la lógica de ROS de la futura lógica de base de datos.
 
 ---
 [Volver al índice general](../README.md) | [Siguiente > Fase 2 (Almacenamiento SQLite)](FASE_2.md)
