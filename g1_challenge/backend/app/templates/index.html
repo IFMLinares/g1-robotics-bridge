@@ -84,35 +84,57 @@
         });
 
         ros.on('connection', function() {
-            console.log('Connected to websocket server.');
+            console.log('✔ Conexión establecida con ROS Bridge');
             document.getElementById('ros-status').style.backgroundColor = "#00ff88";
-            document.getElementById('camera-placeholder').style.display = 'none';
+            document.getElementById('ros-status').style.boxShadow = "0 0 10px #00ff88";
+            document.getElementById('status-text').innerText = "Isaac Sim: Online";
         });
 
         ros.on('error', function(error) {
-            console.log('Error connecting to websocket server: ', error);
+            console.log('✖ Error de conexión:', error);
+            document.getElementById('status-text').innerText = "Isaac Sim: Error de conexión";
         });
 
         ros.on('close', function() {
-            console.log('Connection to websocket server closed.');
+            console.log('✖ Conexión cerrada');
             document.getElementById('ros-status').style.backgroundColor = "#ff3333";
+            document.getElementById('status-text').innerText = "Isaac Sim: Offline";
             document.getElementById('camera-placeholder').style.display = 'flex';
         });
 
-        // Suscripción a la Cámara (Topic comprimido para rendimiento)
+        // Intentar con el tópico disponible en tu lista
+        // Nota: He visto '/back_camera/depth/image_rect_raw' en tu listado.
         const imageTopic = new ROSLIB.Topic({
             ros: ros,
-            name: '/camera/color/image_raw/compressed',
-            messageType: 'sensor_msgs/msg/CompressedImage'
+            name: '/back_camera/depth/image_rect_raw',
+            messageType: 'sensor_msgs/msg/Image'
         });
 
-        imageTopic.subscribe(function(message) {
-            const imageData = "data:image/jpeg;base64," + message.data;
-            const img = document.getElementById('camera-stream');
-            img.src = imageData;
-            img.style.display = 'block';
-            document.getElementById('camera-placeholder').style.display = 'none';
+        // Intentar también con puntos si prefieres (pero Image es mejor para <img>)
+        const headCameraTopic = new ROSLIB.Topic({
+            ros: ros,
+            name: '/g1_robot/camera_head/depth/color/points', // Muestra que hay color aquí
+            messageType: 'sensor_msgs/msg/PointCloud2'
         });
+
+        function handleImage(message) {
+            console.log("Recibiendo imagen de:", imageTopic.name);
+            let imageData = "";
+            // Si es Raw Image de ROS 2, viene como un array de bytes
+            // Intentamos convertir a Base64 si no viene ya codificado
+            if (message.data) {
+                // Nota: Mostrar imágenes raw directamente en <img> requiere que 
+                // Isaac Sim las publique como sensor_msgs/CompressedImage 
+                // o usar un canvas. Por ahora probamos si el bridge las manda legibles.
+                imageData = "data:image/jpeg;base64," + message.data;
+                const img = document.getElementById('camera-stream');
+                img.src = imageData;
+                img.style.display = 'block';
+                document.getElementById('camera-placeholder').style.display = 'none';
+            }
+        }
+
+        imageTopic.subscribe(handleImage);
 
         // Estado del teclado (WASD)
         const keys = {
