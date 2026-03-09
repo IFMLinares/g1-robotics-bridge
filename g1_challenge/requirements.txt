@@ -1,0 +1,5 @@
+roslibpy
+fastapi
+uvicorn
+python-multipart
+# sqlite3 is built-in
