@@ -1,5 +1,6 @@
 roslibpy
 fastapi
 uvicorn
+jinja2
 python-multipart
 # sqlite3 is built-in
