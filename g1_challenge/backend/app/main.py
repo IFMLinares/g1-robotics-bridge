@@ -83,18 +83,17 @@ async def get_telemetry():
     return {"status": bridge.status, "message": "No data in DB"}
 
 @app.post("/api/move")
-async def move_robot(direction: str):
-    speed = 0.5
-    turn = 1.0
-    twist = {'linear': {'x': 0.0, 'y': 0.0, 'z': 0.0}, 'angular': {'x': 0.0, 'y': 0.0, 'z': 0.0}}
-
-    if direction == "forward": twist['linear']['x'] = speed
-    elif direction == "backward": twist['linear']['x'] = -speed
-    elif direction == "left": twist['angular']['z'] = turn
-    elif direction == "right": twist['angular']['z'] = -turn
+async def move_robot(linear_x: float = 0.0, linear_y: float = 0.0, angular_z: float = 0.0):
+    """
+    Control fluido: recibe magnitudes directas para soportar diagonales.
+    """
+    twist = {
+        'linear': {'x': float(linear_x), 'y': float(linear_y), 'z': 0.0},
+        'angular': {'x': 0.0, 'y': 0.0, 'z': float(angular_z)}
+    }
     
     success = bridge.publish_cmd(twist)
-    return {"status": "success" if success else "error", "direction": direction}
+    return {"status": "success" if success else "error", "values": {"x": linear_x, "y": linear_y, "z": angular_z}}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

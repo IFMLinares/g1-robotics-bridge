@@ -59,7 +59,9 @@
                     <button class="btn-step" data-dir="backward" id="btn-down">▼</button>
                 </div>
                 <div class="instructions">
-                    <p>Usa los botones o las teclas <strong>WASD</strong></p>
+                    <p>Mover: <strong>WASD</strong> | Diagonales soportadas</p>
+                    <p>Pasos laterales (Strafing): <strong>Q / E</strong></p>
+                    <p>Parar: <strong>Espacio</strong></p>
                 </div>
             </div>
         </section>
@@ -70,15 +72,35 @@
     </footer>
 
     <script>
-        async function sendMove(direction) {
-            try {
-                const response = await fetch(`/api/move?direction=${direction}`, {
-                    method: 'POST'
-                });
-                const data = await response.json();
-                console.log(`Comando enviado: ${direction}`, data);
-            } catch (error) {
-                console.error('Error enviando comando:', error);
+        // Estado del teclado
+        const keys = {
+            w: false, s: false, a: false, d: false, q: false, e: false
+        };
+
+        let lastSent = { x: 0, y: 0, z: 0 };
+
+        async function updateMovement() {
+            let x = 0, y = 0, z = 0;
+            const speed = 0.6;
+            const turnSpeed = 1.2;
+
+            if (keys.w) x += speed;
+            if (keys.s) x -= speed;
+            if (keys.a) z += turnSpeed; // Giro
+            if (keys.d) z -= turnSpeed; // Giro
+            if (keys.q) y += speed;     // Paso lateral Izq
+            if (keys.e) y -= speed;     // Paso lateral Der
+
+            // Solo enviar si hay cambios significativos para no saturar
+            if (x !== lastSent.x || y !== lastSent.y || z !== lastSent.z) {
+                try {
+                    await fetch(`/api/move?linear_x=${x}&linear_y=${y}&angular_z=${z}`, {
+                        method: 'POST'
+                    });
+                    lastSent = { x, y, z };
+                } catch (error) {
+                    console.error('Error enviando movimiento:', error);
+                }
             }
         }
 
@@ -103,32 +125,49 @@
                     document.getElementById('pos-x').innerText = data.x;
                     document.getElementById('pos-y').innerText = data.y;
                     document.getElementById('pos-yaw').innerText = `${Math.round(data.theta * 57.2958)}°`;
-                    document.getElementById('vel-lin').innerText = "Active";
+                    document.getElementById('vel-lin').innerText = lastSent.x != 0 || lastSent.z != 0 ? "Moving" : "Idle";
                 }
             } catch (error) {
                 console.error('Error fetching telemetry:', error);
             }
         }
 
-        // Eventos de botones
+        // Manejo de teclado
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (keys.hasOwnProperty(key)) keys[key] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            if (keys.hasOwnProperty(key)) keys[key] = false;
+            if (key === ' ') { // Parada de emergencia
+                Object.keys(keys).forEach(k => keys[k] = false);
+            }
+        });
+
+        // Eventos de botones (D-PAD) - Siguen funcionando como impulsos simples
         document.querySelectorAll('.btn-step').forEach(btn => {
-            btn.addEventListener('click', () => {
-                sendMove(btn.dataset.dir);
+            btn.addEventListener('mousedown', () => {
+                const dir = btn.dataset.dir;
+                if(dir === "forward") keys.w = true;
+                if(dir === "backward") keys.s = true;
+                if(dir === "left") keys.a = true;
+                if(dir === "right") keys.d = true;
+                if(dir === "stop") Object.keys(keys).forEach(k => keys[k] = false);
+            });
+            btn.addEventListener('mouseup', () => {
+                const dir = btn.dataset.dir;
+                if(dir === "forward") keys.w = false;
+                if(dir === "backward") keys.s = false;
+                if(dir === "left") keys.a = false;
+                if(dir === "right") keys.d = false;
             });
         });
 
-        // Eventos de teclado (WASD)
-        document.addEventListener('keydown', (e) => {
-            const key = e.key.toLowerCase();
-            if (key === 'w') sendMove('forward');
-            if (key === 'a') sendMove('left');
-            if (key === 's') sendMove('backward');
-            if (key === 'd') sendMove('right');
-            if (key === ' ') sendMove('stop');
-        });
-
-        // Polling de telemetría cada 500ms (2Hz)
-        setInterval(updateTelemetry, 500);
+        // Loops
+        setInterval(updateMovement, 100); // 10Hz para fluidez
+        setInterval(updateTelemetry, 1000); // 1Hz para no saturar DB
     </script>
 </body>
 </html>
