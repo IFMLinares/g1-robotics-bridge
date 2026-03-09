@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G1 Control Center | Premium Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-animation"></div>
+    
+    <header>
+        <div class="logo">G1 <span>Humanoid</span></div>
+        <div class="status-indicator">
+            <span class="dot" id="ros-status"></span>
+            <span id="status-text">Isaac Sim: Conectando...</span>
+        </div>
+    </header>
+
+    <main class="dashboard">
+        <!-- Panel de Telemetría (Placeholders) -->
+        <section class="telemetry-panel card">
+            <h2><i class="icon-telemetry"></i> Telemetría Real-Time</h2>
+            <div class="metrics-grid">
+                <div class="metric">
+                    <label>Posición X</label>
+                    <div class="value" id="pos-x">--</div>
+                </div>
+                <div class="metric">
+                    <label>Posición Y</label>
+                    <div class="value" id="pos-y">--</div>
+                </div>
+                <div class="metric">
+                    <label>Orientación</label>
+                    <div class="value" id="pos-yaw">--</div>
+                </div>
+                <div class="metric">
+                    <label>Vel. Linear</label>
+                    <div class="value" id="vel-lin">--</div>
+                </div>
+            </div>
+            <div class="camera-placeholder">
+                <div class="placeholder-text">Sensor Visual (Streaming No Disponible)</div>
+            </div>
+        </section>
+
+        <!-- Panel de Control -->
+        <section class="control-panel card">
+            <h2><i class="icon-controller"></i> Control de Movimiento</h2>
+            <div class="control-layout">
+                <div class="dpad">
+                    <button class="btn-step" data-dir="forward" id="btn-up">▲</button>
+                    <div class="side-btns">
+                        <button class="btn-step" data-dir="left" id="btn-left">◀</button>
+                        <button class="btn-step stop" data-dir="stop" id="btn-stop">■</button>
+                        <button class="btn-step" data-dir="right" id="btn-right">▶</button>
+                    </div>
+                    <button class="btn-step" data-dir="backward" id="btn-down">▼</button>
+                </div>
+                <div class="instructions">
+                    <p>Usa los botones o las teclas <strong>WASD</strong></p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 G1 Challenge - Monitoring System</p>
+    </footer>
+
+    <script>
+        async function sendMove(direction) {
+            try {
+                const response = await fetch(`/api/move?direction=${direction}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                console.log(`Comando enviado: ${direction}`, data);
+            } catch (error) {
+                console.error('Error enviando comando:', error);
+            }
+        }
+
+        async function updateTelemetry() {
+            try {
+                const response = await fetch('/api/telemetry');
+                const data = await response.json();
+                
+                const statusDot = document.getElementById('ros-status');
+                const statusText = document.getElementById('status-text');
+
+                if (data.status === "Connected") {
+                    statusDot.style.backgroundColor = "#00ff88";
+                    statusDot.style.boxShadow = "0 0 8px #00ff88";
+                    statusText.innerText = "Isaac Sim: Online";
+                } else {
+                    statusDot.style.backgroundColor = "#ff3333";
+                    statusText.innerText = `Isaac Sim: ${data.status}`;
+                }
+
+                if (data.x !== undefined) {
+                    document.getElementById('pos-x').innerText = data.x;
+                    document.getElementById('pos-y').innerText = data.y;
+                    document.getElementById('pos-yaw').innerText = `${Math.round(data.theta * 57.2958)}°`;
+                    document.getElementById('vel-lin').innerText = "Active";
+                }
+            } catch (error) {
+                console.error('Error fetching telemetry:', error);
+            }
+        }
+
+        // Eventos de botones
+        document.querySelectorAll('.btn-step').forEach(btn => {
+            btn.addEventListener('click', () => {
+                sendMove(btn.dataset.dir);
+            });
+        });
+
+        // Eventos de teclado (WASD)
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (key === 'w') sendMove('forward');
+            if (key === 'a') sendMove('left');
+            if (key === 's') sendMove('backward');
+            if (key === 'd') sendMove('right');
+            if (key === ' ') sendMove('stop');
+        });
+
+        // Polling de telemetría cada 500ms (2Hz)
+        setInterval(updateTelemetry, 500);
+    </script>
+</body>
+</html>
