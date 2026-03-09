@@ -6,6 +6,8 @@
     <title>G1 Control Center | Premium Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <!-- ROSlibJS para Streaming Directo -->
+    <script src="https://cdn.jsdelivr.net/npm/roslib@1/build/roslib.min.js"></script>
 </head>
 <body>
     <div class="background-animation"></div>
@@ -19,29 +21,32 @@
     </header>
 
     <main class="dashboard">
-        <!-- Panel de Telemetría (Placeholders) -->
+        <!-- Panel de Telemetría -->
         <section class="telemetry-panel card">
             <h2><i class="icon-telemetry"></i> Telemetría Real-Time</h2>
             <div class="metrics-grid">
                 <div class="metric">
                     <label>Posición X</label>
-                    <div class="value" id="pos-x">--</div>
+                    <div class="value" id="pos-x">0.0</div>
                 </div>
                 <div class="metric">
                     <label>Posición Y</label>
-                    <div class="value" id="pos-y">--</div>
+                    <div class="value" id="pos-y">0.0</div>
                 </div>
                 <div class="metric">
                     <label>Orientación</label>
-                    <div class="value" id="pos-yaw">--</div>
+                    <div class="value" id="pos-yaw">0°</div>
                 </div>
                 <div class="metric">
-                    <label>Vel. Linear</label>
-                    <div class="value" id="vel-lin">--</div>
+                    <label>Status</label>
+                    <div class="value" id="vel-lin" style="font-size: 1.2rem; color: var(--accent-color);">IDLE</div>
                 </div>
             </div>
-            <div class="camera-placeholder">
-                <div class="placeholder-text">Sensor Visual (Streaming No Disponible)</div>
+            <div class="camera-container">
+                <img id="camera-stream" src="" alt="Esperando Stream..." onerror="this.style.display='none'">
+                <div id="camera-placeholder" class="camera-placeholder">
+                    <div class="placeholder-text">Conectando a RealSense...</div>
+                </div>
             </div>
         </section>
 
@@ -73,9 +78,45 @@
     </footer>
 
     <script>
-        // Estado del teclado
+        // Configuración ROS Directa (Browser -> Isaac Sim)
+        const ros = new ROSLIB.Ros({
+            url: 'ws://192.168.3.122:9090'
+        });
+
+        ros.on('connection', function() {
+            console.log('Connected to websocket server.');
+            document.getElementById('ros-status').style.backgroundColor = "#00ff88";
+            document.getElementById('camera-placeholder').style.display = 'none';
+        });
+
+        ros.on('error', function(error) {
+            console.log('Error connecting to websocket server: ', error);
+        });
+
+        ros.on('close', function() {
+            console.log('Connection to websocket server closed.');
+            document.getElementById('ros-status').style.backgroundColor = "#ff3333";
+            document.getElementById('camera-placeholder').style.display = 'flex';
+        });
+
+        // Suscripción a la Cámara (Topic comprimido para rendimiento)
+        const imageTopic = new ROSLIB.Topic({
+            ros: ros,
+            name: '/camera/color/image_raw/compressed',
+            messageType: 'sensor_msgs/msg/CompressedImage'
+        });
+
+        imageTopic.subscribe(function(message) {
+            const imageData = "data:image/jpeg;base64," + message.data;
+            const img = document.getElementById('camera-stream');
+            img.src = imageData;
+            img.style.display = 'block';
+            document.getElementById('camera-placeholder').style.display = 'none';
+        });
+
+        // Estado del teclado (WASD)
         const keys = {
-            w: false, s: false, a: false, d: false, q: false, e: false
+            w: false, s: false, a: false, d: false
         };
 
         let lastSent = { x: 0, y: 0, z: 0 };
