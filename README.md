@@ -51,6 +51,7 @@ El desarrollo se ha dividido en fases lógicas para asegurar una integración ro
 
 - 📘 **[Fase 1: Inmersión en ROS 2 (Suscripción y Publicación)](docs/FASE_1.md)**: Cómo logramos escuchar la odometría del G1 (tópico `/odom`) y enviarle comandos matemáticos de velocidad diferencial (tópico `/cmd_vel`).
 - 🗄️ **[Fase 2: Capa de Datos (SQLite)](docs/FASE_2.md)**: Diseño de la base de datos para la telemetría, implementando un guardado eficiente (Throttling) para prevenir bloqueos por alto volumen de datos.
+- 🛠️ **[Guía de Scripts de Monitoreo](docs/GUIA_SCRIPTS.md)**: Explicación de todas las herramientas de diagnóstico desarrolladas para LiDAR, Odometría y conectividad.
 
 ## 🚀 Despliegue Rápido (Entorno Multi-PC)
 
