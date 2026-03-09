@@ -1,0 +1,28 @@
+# Resumen de Sesión: Día 1 - Robótica
+
+Este documento resume lo avanzado hoy para que puedas continuar en tu laptop con todo el contexto necesario.
+
+## Lo que hemos hecho
+1.  **Investigación en Notion**: Identificamos las tareas del "Día 1" del reto técnico de robótica.
+2.  **Definición de Arquitectura**:
+    - **PC Isaac Sim**: Corre la simulación y Rosbridge (Puerto 9090).
+    - **Laptop ASUS E410K**: Servirá como monitor y controlador usando `roslibpy` (sin necesidad de instalar ROS 2 completo).
+3.  **Implementación**:
+    - Se creó la carpeta `g1_monitor`.
+    - Se generó [requirements.txt](file:///e:/Programs%20Installed/xampp/htdocs/Robotics/Prueba/g1_monitor/requirements.txt) con la dependencia `roslibpy`.
+    - Se desarrolló [cmd_vel_publisher.py](file:///e:/Programs%20Installed/xampp/htdocs/Robotics/Prueba/g1_monitor/cmd_vel_publisher.py) para mover al robot vía WebSockets.
+    - Se añadió [.gitkeep](file:///e:/Programs%20Installed/xampp/htdocs/Robotics/Prueba/g1_monitor/.gitkeep) para asegurar la estructura en GitHub.
+
+## Estado Actual
+- [x] Tareas de Notion identificadas.
+- [x] Estrategia de comunicación Rosbridge validada.
+- [x] Código base generado y listo para Git.
+
+## Próximos Pasos (En tu Laptop)
+1. Hacer un `git pull` para bajar la carpeta `g1_monitor`.
+2. Instalar dependencias: `pip install -r requirements.txt`.
+3. Configurar la IP de tu PC de Isaac Sim en [cmd_vel_publisher.py](file:///e:/Programs%20Installed/xampp/htdocs/Robotics/Prueba/g1_monitor/cmd_vel_publisher.py).
+4. Ejecutar y verificar movimiento.
+
+---
+*Este historial de decisiones está guardado en los archivos [task.md](file:///C:/Users/ifmlinares/.gemini/antigravity/brain/72a415e0-a80b-45dc-a60c-cb3aa9f2de85/task.md), [implementation_plan.md](file:///C:/Users/ifmlinares/.gemini/antigravity/brain/72a415e0-a80b-45dc-a60c-cb3aa9f2de85/implementation_plan.md) y este `walkthrough.md` dentro de tu proyecto.*
