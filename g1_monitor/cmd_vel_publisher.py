@@ -4,12 +4,16 @@ import roslibpy
 def main():
     # CONFIGURACIÓN
     # Reemplaza con la IP de tu PC que corre Isaac Sim
-    HOST = 'localhost' 
+    HOST = '192.168.3.122' 
     PORT = 9090
 
     print(f"Conectando a Rosbridge en {HOST}:{PORT}...")
     
     client = roslibpy.Ros(host=HOST, port=PORT)
+    
+    # Manejadores de eventos para diagnóstico
+    client.on('error', lambda err: print(f"Error de conexión: {err}"))
+    client.on('close', lambda reason: print(f"Conexión cerrada: {reason}"))
 
     # Definir el tópico cmd_vel
     # El tipo es geometry_msgs/Twist
@@ -24,10 +28,10 @@ def main():
             # Linear X: Velocidad frontal (m/s)
             # Angular Z: Velocidad de giro (rad/s)
             
-            print("Enviando comando: Avance frontal (0.2 m/s)")
+            print("Enviando comando: Avance frontal (0.0 m/s)")
             
             message = roslibpy.Message({
-                'linear': {'x': 0.2, 'y': 0.0, 'z': 0.0},
+                'linear': {'x': 0.0, 'y': 0.0, 'z': 0.0},
                 'angular': {'x': 0.0, 'y': 0.0, 'z': 0.0}
             })
             
