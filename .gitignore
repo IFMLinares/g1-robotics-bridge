@@ -1,2 +1,4 @@
 .venv
 *.pyc
+*.db
+/g1_challenge/ros2_ws/src/g1_monitor/g1_telemetry.db
