@@ -7,10 +7,9 @@ import uvicorn
 import os
 import sys
 
-# Ajuste de path para importar DatabaseManager
+# Ajuste de path (ya no se usa db pero lo mantenemos por si se usa en otro lado)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.abspath(os.path.join(BASE_DIR, "../../")))
-from database.database_manager import DatabaseManager
 
 app = FastAPI(title="G1 Humanoid Control Center")
 
@@ -18,15 +17,19 @@ app = FastAPI(title="G1 Humanoid Control Center")
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
-# Configuración de Base de Datos
-DB_PATH = os.path.abspath(os.path.join(BASE_DIR, "../../database/g1_telemetry.db"))
-db = DatabaseManager(DB_PATH)
+# Data Storage in Memory
+robot_telemetry: dict[str, float] = {
+    "x": 0.0,
+    "y": 0.0,
+    "theta": 0.0
+}
 
 # Clase Bridge según planificación
 class G1Bridge:
     def __init__(self, host='192.168.3.122', port=9090):
         self.client = roslibpy.Ros(host=host, port=port)
         self.cmd_vel_topic = roslibpy.Topic(self.client, '/cmd_vel', 'geometry_msgs/msg/Twist')
+        self.tf_topic = roslibpy.Topic(self.client, '/tf', 'tf2_msgs/msg/TFMessage')
         self.status = "Disconnected"
 
     def connect(self):
@@ -34,6 +37,28 @@ class G1Bridge:
         self.client.on('close', self._on_close)
         self.client.run()
         self.status = "Connected"
+        self.tf_topic.subscribe(self._on_tf_message)
+
+    def _on_tf_message(self, message):
+        import math
+        # tf publish arrays of transforms
+        transforms = message.get("transforms", [])
+        for tf in transforms:
+            # Look for the transform from odom to base_link or world to base_link
+            # Common names are 'odom' -> 'base_link' or 'world' -> 'pelvis' (for G1)
+            child_frame = tf.get("child_frame_id", "")
+            
+            # Update telemetry if this is the main body log
+            if "pelvis" in child_frame or "base_link" in child_frame or "torso" in child_frame:
+                translation = tf.get("transform", {}).get("translation", {})
+                robot_telemetry["x"] = translation.get("x", 0.0)
+                robot_telemetry["y"] = translation.get("y", 0.0)
+                
+                rotation = tf.get("transform", {}).get("rotation", {})
+                qz = rotation.get("z", 0.0)
+                qw = rotation.get("w", 1.0)
+                yaw = math.atan2(2.0 * (qw * qz), 1.0 - 2.0 * (qz * qz))
+                robot_telemetry["theta"] = yaw
 
     def _on_error(self, error):
         self.status = "Error"
@@ -72,18 +97,13 @@ async def read_item(request: Request):
 
 @app.get("/api/telemetry")
 async def get_telemetry():
-    """Obtiene los últimos datos de la base de datos para el Dashboard."""
-    latest_logs = db.get_latest_logs(limit=1)
-    if latest_logs:
-        log = latest_logs[0]
-        return {
-            "status": bridge.status,
-            "ts": log[1],
-            "x": round(log[2], 2),
-            "y": round(log[3], 2),
-            "theta": round(log[4], 2)
-        }
-    return {"status": bridge.status, "message": "No data in DB"}
+    """Obtiene los últimos datos de Odometría."""
+    return {
+        "status": bridge.status,
+        "x": round(robot_telemetry["x"], 2),
+        "y": round(robot_telemetry["y"], 2),
+        "theta": round(robot_telemetry["theta"], 2)
+    }
 
 @app.post("/api/move")
 async def move_robot(linear_x: float = 0.0, linear_y: float = 0.0, angular_z: float = 0.0):

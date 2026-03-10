@@ -21,6 +21,7 @@
         <div class="status-indicator">
             <span class="dot" id="ros-status"></span>
             <span id="status-text">Isaac Sim: Conectando...</span>
+
         </div>
     </header>
 
@@ -124,7 +125,7 @@
         // Tópico de la cámara RGB Head
         const imageTopic = new ROSLIB.Topic({
             ros: ros,
-            name: '/g1_robot/camera_head/rgb/image_raw',
+            name: '/camera/color/image_raw',
             messageType: 'sensor_msgs/msg/Image'
         });
 

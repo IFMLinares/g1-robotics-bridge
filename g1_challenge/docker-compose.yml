@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  g1_dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: g1_control_dashboard
+    ports:
+      - "5000:5000" # Exponemos el servidor FastAPI para el HTML y las APIs
+    restart: unless-stopped
+    environment:
+      # Estos son informativos para documentación, las URLs están mapeadas en index.html y main.py
+      - ROS_HOST=192.168.3.122
+      - ROS_PORT=9090
